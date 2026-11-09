@@ -1,0 +1,979 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SkillBond - portable, bonded developer reputation</title>
+<meta name="theme-color" content="#0B1020">
+<style>
+  :root{
+    --bg:#0A0F1F; --bg2:#0E1530; --card:#131B38; --card2:#18224A; --line:#26335F; --line2:#33437A;
+    --ink:#EEF2FF; --dim:#A9B6DE; --faint:#7886B5;
+    --violet:#8B6CFF; --cyan:#27D3EE; --grad:linear-gradient(135deg,#8B6CFF 0%,#27D3EE 100%);
+    --good:#34D399; --good-bg:rgba(52,211,153,.13); --warn:#FBBF24; --warn-bg:rgba(251,191,36,.13);
+    --bad:#FB7185; --bad-bg:rgba(251,113,133,.13); --info:#60A5FA; --info-bg:rgba(96,165,250,.13);
+    --neutral-bg:rgba(169,182,222,.12);
+    --bronze:#D58A4B; --silver:#C9D2E6; --gold:#F6C453; --platinum:#7DE8F7;
+    --radius:16px; --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --shadow:0 10px 30px rgba(0,0,0,.35);
+  }
+  @media (prefers-color-scheme: light){
+    :root{
+      --bg:#F4F6FF; --bg2:#E9EDFF; --card:#FFFFFF; --card2:#F1F4FF; --line:#D9DFF5; --line2:#C3CCEF;
+      --ink:#121A3A; --dim:#4A5782; --faint:#7482AE;
+      --good:#0E9F6E; --good-bg:rgba(14,159,110,.12); --warn:#B7791F; --warn-bg:rgba(183,121,31,.13);
+      --bad:#D6336C; --bad-bg:rgba(214,51,108,.1); --info:#2563EB; --info-bg:rgba(37,99,235,.1);
+      --neutral-bg:rgba(74,87,130,.1); --shadow:0 10px 30px rgba(40,50,110,.12);
+    }
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;overflow-x:hidden}
+  body{background:radial-gradient(1200px 500px at 70% -10%,rgba(139,108,255,.18),transparent 60%),
+       radial-gradient(900px 500px at -10% 0%,rgba(39,211,238,.12),transparent 55%),var(--bg);
+       color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.5;min-height:100vh;
+       padding-bottom:calc(84px + env(safe-area-inset-bottom))}
+  a{color:var(--cyan);text-decoration:none} a:hover{text-decoration:underline}
+  h1,h2,h3,h4{margin:0;line-height:1.2;letter-spacing:-.015em}
+  h1{font-size:clamp(28px,6.5vw,44px);font-weight:800} h2{font-size:21px;font-weight:750} h3{font-size:16px;font-weight:700}
+  p{margin:0 0 10px} .mono,code{font-family:var(--mono);font-size:.86em}
+  .wrap{max-width:860px;margin:0 auto;padding:0 16px}
+  .dim{color:var(--dim)} .faint{color:var(--faint)} .small{font-size:13px}
+  .grad-text{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+  header.top{position:sticky;top:0;z-index:30;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+             background:color-mix(in srgb,var(--bg) 78%,transparent);border-bottom:1px solid var(--line)}
+  header.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:10px;height:60px}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:19px;color:var(--ink);letter-spacing:-.02em}
+  .brand:hover{text-decoration:none}
+  .logo{width:30px;height:30px;border-radius:9px;background:var(--grad);display:grid;place-items:center;box-shadow:0 4px 14px rgba(139,108,255,.45)}
+  .logo svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+  .topnav{display:none;gap:4px}
+  .topnav a{padding:8px 12px;border-radius:10px;color:var(--dim);font-weight:600;font-size:14px}
+  .topnav a:hover{background:var(--neutral-bg);text-decoration:none}
+  .topnav a.active{color:var(--ink);background:var(--card2)}
+  .wallet-pill{display:flex;align-items:center;gap:8px;border:1px solid var(--line2);background:var(--card);color:var(--ink);
+               border-radius:999px;padding:7px 13px;font-size:13px;font-weight:600;cursor:pointer;max-width:58vw;font-family:inherit}
+  .wallet-pill .label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .wallet-pill.on{border-color:var(--good);background:var(--good-bg)}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--faint);flex:none}
+  .wallet-pill.on .dot{background:var(--good);box-shadow:0 0 0 3px var(--good-bg)}
+
+  nav.bottom{position:fixed;left:0;right:0;bottom:0;z-index:40;background:color-mix(in srgb,var(--bg) 88%,transparent);
+             backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--line);
+             padding-bottom:env(safe-area-inset-bottom)}
+  nav.bottom .wrap{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;padding:6px 8px}
+  .tab{display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 2px;border-radius:12px;color:var(--faint);
+       font-size:11.5px;font-weight:650}
+  .tab:hover{text-decoration:none}
+  .tab svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .tab.active{color:var(--ink);background:var(--card2)}
+  .tab.active svg{stroke:var(--cyan)}
+  @media (min-width:820px){ .topnav{display:flex} nav.bottom{display:none} body{padding-bottom:40px} }
+
+  main{padding:22px 0 24px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:14px}
+  .card.glow{border-color:var(--line2);box-shadow:var(--shadow)}
+  .card h3{margin-bottom:8px}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .between{justify-content:space-between}
+  .grow{flex:1 1 auto;min-width:0}
+  .stack{display:grid;gap:12px;min-width:0}
+  .stack>*,.copyline>*,.card>*{min-width:0;max-width:100%}
+  .copyline .code{min-width:0;overflow-x:auto}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  @media (max-width:520px){ .grid3{grid-template-columns:repeat(2,1fr)} }
+
+  .hero{padding:10px 0 18px}
+  .hero p{color:var(--dim);max-width:620px;margin:12px 0 16px;font-size:17px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+  .stat b{display:block;font-size:24px;letter-spacing:-.02em}
+  .stat span{color:var(--faint);font-size:12.5px;font-weight:600}
+
+  .btn{appearance:none;border:1px solid var(--line2);background:var(--card2);color:var(--ink);border-radius:12px;padding:11px 16px;
+       font:inherit;font-weight:700;font-size:15px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px}
+  .btn:hover{text-decoration:none;filter:brightness(1.1)}
+  .btn.primary{background:var(--grad);border-color:transparent;color:#071022}
+  .btn.good{background:var(--good-bg);border-color:var(--good);color:var(--good)}
+  .btn.danger{background:var(--bad-bg);border-color:var(--bad);color:var(--bad)}
+  .btn.ghost{background:transparent}
+  .btn.small{min-height:36px;padding:7px 12px;font-size:13.5px;border-radius:10px}
+  .btn:disabled,.btn.disabled{opacity:.45;cursor:not-allowed;filter:none}
+  .btn.block{width:100%}
+
+  label.field{display:block;margin-bottom:12px}
+  label.field>span{display:block;font-size:13px;font-weight:700;color:var(--dim);margin-bottom:6px}
+  input,textarea,select{width:100%;background:var(--bg2);color:var(--ink);border:1px solid var(--line2);border-radius:12px;
+       padding:12px 13px;font:inherit;font-size:16px;outline:none}
+  input:focus,textarea:focus,select:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(39,211,238,.18)}
+  textarea{min-height:86px;resize:vertical}
+  .hint{font-size:12.5px;color:var(--faint);margin-top:5px}
+
+  .pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:750;white-space:nowrap}
+  .pill i{width:7px;height:7px;border-radius:50%;background:currentColor;display:inline-block}
+  .p-pending{background:var(--warn-bg);color:var(--warn)} .p-verified{background:var(--good-bg);color:var(--good)}
+  .p-challenged{background:var(--bad-bg);color:var(--bad)} .p-finalized{background:var(--info-bg);color:var(--info)}
+  .p-rejected,.p-withdrawn{background:var(--neutral-bg);color:var(--dim)} .p-overturned{background:var(--bad-bg);color:var(--bad)}
+  .chip{display:inline-block;padding:3px 9px;border-radius:8px;background:var(--neutral-bg);color:var(--dim);font-size:12px;font-weight:650}
+  .chips{display:flex;gap:7px;overflow-x:auto;padding-bottom:4px;margin:0 -16px 12px;padding:0 16px 4px;scrollbar-width:none}
+  .chips::-webkit-scrollbar{display:none}
+  .fchip{flex:none;border:1px solid var(--line2);background:var(--card);color:var(--dim);border-radius:999px;padding:7px 13px;
+         font:inherit;font-weight:700;font-size:13.5px;cursor:pointer}
+  .fchip.on{background:var(--grad);color:#071022;border-color:transparent}
+
+  .claim{display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:start;background:var(--card);border:1px solid var(--line);
+         border-radius:var(--radius);padding:14px;margin-bottom:10px;color:var(--ink)}
+  .claim:hover{border-color:var(--line2);text-decoration:none;transform:translateY(-1px)}
+  .kind{width:44px;height:44px;border-radius:13px;background:var(--card2);border:1px solid var(--line2);display:grid;place-items:center}
+  .kind svg{width:22px;height:22px;stroke:var(--cyan);fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+  .claim .st{font-weight:700;margin-bottom:3px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .claim .meta{font-size:12.5px;color:var(--faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .claim .side{text-align:right;display:grid;gap:6px;justify-items:end}
+  @media (max-width:520px){ .claim{grid-template-columns:44px 1fr} .claim .side{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;text-align:left} }
+  .pts{font-weight:800;font-size:18px}
+  .pts.zero{color:var(--faint)}
+
+  .stepper{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:6px 0 4px}
+  .step{text-align:center;font-size:12px;font-weight:700;color:var(--faint)}
+  .step .bar{height:6px;border-radius:6px;background:var(--line);margin-bottom:7px}
+  .step.done{color:var(--good)} .step.done .bar{background:var(--good)}
+  .step.now{color:var(--cyan)} .step.now .bar{background:var(--grad)}
+  .step.fail{color:var(--bad)} .step.fail .bar{background:var(--bad)}
+
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;font-size:14px}
+  .kv dt{color:var(--faint);font-weight:650} .kv dd{margin:0;overflow-wrap:anywhere}
+  .box{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:12px 13px}
+  .code{font-family:var(--mono);font-size:13px;background:var(--bg2);border:1px solid var(--line2);border-radius:12px;padding:12px;
+        overflow-x:auto;white-space:pre;color:var(--ink)}
+  .copyline{display:flex;gap:8px;align-items:stretch}
+  .copyline .code{flex:1;white-space:nowrap}
+  .banner{border-radius:14px;padding:12px 14px;margin-bottom:14px;font-size:14px;border:1px solid}
+  .banner.info{background:var(--info-bg);border-color:var(--info)} .banner.warn{background:var(--warn-bg);border-color:var(--warn)}
+  .banner.good{background:var(--good-bg);border-color:var(--good)} .banner.bad{background:var(--bad-bg);border-color:var(--bad)}
+  .why{font-size:12.5px;color:var(--warn);margin-top:6px}
+  .role{display:inline-flex;gap:7px;align-items:center;font-size:13px;font-weight:750;padding:5px 11px;border-radius:999px;background:var(--card2);border:1px solid var(--line2)}
+
+  .ring{position:relative;width:132px;height:132px;flex:none}
+  .ring svg{width:132px;height:132px;transform:rotate(-90deg)}
+  .ring .num{position:absolute;inset:0;display:grid;place-items:center;text-align:center}
+  .ring .num b{font-size:34px;letter-spacing:-.03em;display:block;line-height:1}
+  .ring .num span{font-size:11px;color:var(--faint);font-weight:700}
+  .medal{display:inline-flex;align-items:center;gap:8px;font-weight:800;font-size:14px}
+  .medal svg{width:30px;height:34px}
+  .bar-row{display:grid;grid-template-columns:96px 1fr 44px;gap:10px;align-items:center;margin:7px 0;font-size:13.5px}
+  .bar-row .tr{height:9px;border-radius:9px;background:var(--line);overflow:hidden}
+  .bar-row .fl{height:100%;border-radius:9px;background:var(--grad)}
+  .avatar{width:56px;height:56px;border-radius:18px;background:var(--grad);display:grid;place-items:center;font-weight:850;font-size:24px;color:#071022;flex:none}
+
+  .ev{display:grid;grid-template-columns:34px 1fr;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}
+  .ev:last-child{border-bottom:0}
+  .ev .ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;background:var(--card2);font-size:15px}
+  .ev .t{font-weight:700;font-size:14px} .ev .d{font-size:12.5px;color:var(--faint);overflow-wrap:anywhere}
+
+  .skel{border-radius:14px;background:linear-gradient(90deg,var(--card) 25%,var(--card2) 50%,var(--card) 75%);background-size:200% 100%;
+        animation:sh 1.3s infinite;height:84px;margin-bottom:10px}
+  @keyframes sh{to{background-position:-200% 0}}
+  .empty{text-align:center;padding:34px 12px;color:var(--dim)}
+  .empty .big{font-size:34px;margin-bottom:6px}
+
+  .tray{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(92px + env(safe-area-inset-bottom));z-index:60;width:min(560px,calc(100vw - 24px));
+        background:var(--card2);border:1px solid var(--line2);border-radius:16px;padding:13px 14px;box-shadow:var(--shadow);display:none}
+  .tray.show{display:block}
+  .tray.ok{border-color:var(--good)} .tray.err{border-color:var(--bad)}
+  .tray .tt{font-weight:800;margin-bottom:4px;display:flex;justify-content:space-between;gap:8px}
+  .tray .tb{font-size:13.5px;color:var(--dim);white-space:pre-wrap;overflow-wrap:anywhere;max-height:34vh;overflow:auto}
+  .spin{width:15px;height:15px;border-radius:50%;border:2.5px solid var(--line2);border-top-color:var(--cyan);animation:spin .8s linear infinite;display:inline-block;vertical-align:-3px;margin-right:6px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @media (min-width:820px){ .tray{bottom:24px} }
+
+  .sheet{position:fixed;inset:0;z-index:80;background:rgba(3,6,18,.7);display:flex;align-items:flex-end;justify-content:center}
+  .sheet[hidden]{display:none}
+  .sheet .panel{background:var(--bg2);border:1px solid var(--line2);border-radius:22px 22px 0 0;width:min(560px,100%);max-height:92vh;overflow:auto;padding:18px 16px calc(20px + env(safe-area-inset-bottom))}
+  @media (min-width:820px){ .sheet{align-items:center} .sheet .panel{border-radius:22px} }
+  .tw{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:10px 12px;border:1px solid var(--line2);border-radius:12px;margin-bottom:8px;background:var(--card)}
+  .tw.cur{border-color:var(--good);background:var(--good-bg)}
+  .todo{display:grid;grid-template-columns:30px 1fr auto;gap:12px;align-items:start;padding:12px 0;border-bottom:1px solid var(--line)}
+  .todo:last-child{border-bottom:0}
+  .todo .n{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:14px;background:var(--card2);border:1px solid var(--line2)}
+  .todo.done .n{background:var(--good-bg);border-color:var(--good);color:var(--good)}
+  .todo.next .n{background:var(--grad);color:#071022;border-color:transparent}
+  table.t{width:100%;border-collapse:collapse;font-size:14px}
+  table.t td,table.t th{padding:9px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+  table.t th{color:var(--faint);font-size:12.5px;font-weight:700}
+  footer{text-align:center;color:var(--faint);font-size:12.5px;padding:10px 16px 30px}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#/"><span class="logo"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 5-3 8.5-7 10-4-1.5-7-5-7-10V6l7-3z"/><path d="M9 12l2.2 2.2L15.5 10"/></svg></span>SkillBond</a>
+    <nav class="topnav" id="topnav">
+      <a href="#/" data-tab="explore">Explore</a><a href="#/new" data-tab="new">Post claim</a><a href="#/profile" data-tab="profile">Profile</a>
+      <a href="#/ledger" data-tab="ledger">Ledger</a><a href="#/guide" data-tab="guide">Test path</a><a href="#/integrate" data-tab="integrate">Integrate</a>
+    </nav>
+    <button class="wallet-pill" id="walletPill" type="button"><span class="dot" id="statusDot"></span><span class="label" id="statusText">Connect wallet</span></button>
+  </div>
+</header>
+
+<nav class="bottom" id="bottomnav"><div class="wrap">
+  <a class="tab" href="#/" data-tab="explore"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>Explore</a>
+  <a class="tab" href="#/new" data-tab="new"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>Post</a>
+  <a class="tab" href="#/profile" data-tab="profile"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4.5-6 8-6s7 2 8 6"/></svg>Profile</a>
+  <a class="tab" href="#/ledger" data-tab="ledger"><svg viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h10"/></svg>Ledger</a>
+  <a class="tab" href="#/guide" data-tab="guide"><svg viewBox="0 0 24 24"><path d="M5 4h14v16l-7-4-7 4z"/></svg>Test path</a>
+</div></nav>
+
+<main><div class="wrap" id="view"></div></main>
+<footer>SkillBond runs on GenLayer Studio. Contract <span class="mono" id="contractAddrText"></span> · <a href="#/integrate">Use it from your contract</a></footer>
+
+<div class="tray" id="tray" role="status" aria-live="polite"></div>
+
+<div class="sheet" id="walletSheet" hidden>
+  <div class="panel">
+    <div class="row between" style="margin-bottom:10px"><h2>Wallet</h2><button class="btn small ghost" id="sheetClose" type="button">Close</button></div>
+    <div id="sheetBody"></div>
+  </div>
+</div>
+
+<script type="module">
+import { createClient, createAccount } from "https://esm.sh/genlayer-js@latest";
+import { studionet } from "https://esm.sh/genlayer-js@latest/chains";
+
+const DEFAULT_CONTRACT_ADDRESS = "0x0000000000000000000000000000000000000000";
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+const WEI_PER_GEN = 1000000000000000000n;
+const STATUSES = ["pending", "verified", "challenged", "finalized", "rejected", "overturned", "withdrawn"];
+const STATUS_LABEL = {
+  pending: "Awaiting verification", verified: "Verified", challenged: "Under challenge", finalized: "Final",
+  rejected: "Rejected", overturned: "Overturned", withdrawn: "Withdrawn",
+};
+const KIND_LABEL = { commit: "Commit", pull_request: "Pull request", release: "Release" };
+const BADGE_COLOR = { NONE: "var(--faint)", BRONZE: "var(--bronze)", SILVER: "var(--silver)", GOLD: "var(--gold)", PLATINUM: "var(--platinum)" };
+const LIST_LIMIT = 15;
+const SESSION_SLOT = "skillbond.testwallets";
+
+const $ = (sel, root = document) => root.querySelector(sel);
+
+/* ---------- contract address: ?contract=0x... , then saved value, then the default ---------- */
+function resolveContract() {
+  const ok = (v) => /^0x[0-9a-fA-F]{40}$/.test(String(v || ""));
+  try {
+    const q = new URLSearchParams(location.search).get("contract");
+    if (ok(q)) { try { localStorage.setItem("skillbond.contract", q); } catch (e) {} return q; }
+  } catch (e) {}
+  if (DEFAULT_CONTRACT_ADDRESS !== ZERO_ADDRESS) return DEFAULT_CONTRACT_ADDRESS;
+  try { const s = localStorage.getItem("skillbond.contract"); if (ok(s)) return s; } catch (e) {}
+  return DEFAULT_CONTRACT_ADDRESS;
+}
+const CONTRACT_ADDRESS = resolveContract();
+$("#contractAddrText").textContent = CONTRACT_ADDRESS === ZERO_ADDRESS ? "not set" : short(CONTRACT_ADDRESS);
+
+/* ---------- tiny DOM helper: contract data is only ever inserted as text ---------- */
+function h(tag, props, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(props || {})) {
+    if (v === false || v === null || v === undefined) continue;
+    if (k === "class") el.className = v;
+    else if (k === "text") el.textContent = v;
+    else if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+    else el.setAttribute(k, v === true ? "" : v);
+  }
+  for (const kid of kids.flat()) {
+    if (kid === null || kid === undefined || kid === false) continue;
+    el.appendChild(typeof kid === "string" || typeof kid === "number" ? document.createTextNode(String(kid)) : kid);
+  }
+  return el;
+}
+function short(a) { a = String(a || ""); return a.length > 14 ? a.slice(0, 6) + "..." + a.slice(-4) : a; }
+function svg(markup) { const d = document.createElement("div"); d.innerHTML = markup; return d.firstElementChild; }
+const KIND_ICON = {
+  commit: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.5"/><path d="M3 12h5.5M15.5 12H21"/></svg>',
+  pull_request: '<svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M6 8.5v7M18 15.5V10a3 3 0 0 0-3-3h-3"/><path d="M13.5 4.5L11 7l2.5 2.5"/></svg>',
+  release: '<svg viewBox="0 0 24 24"><path d="M3 12l9-8 9 8-9 8z"/><circle cx="12" cy="12" r="2"/></svg>',
+};
+
+/* ---------- GEN <-> wei, exact BigInt only ---------- */
+function weiToGen(w) {
+  let wei;
+  try { wei = BigInt(w); } catch (e) { return String(w); }
+  const whole = wei / WEI_PER_GEN;
+  let frac = (wei % WEI_PER_GEN).toString().padStart(18, "0").slice(0, 4).replace(/0+$/, "");
+  return frac ? `${whole}.${frac}` : String(whole);
+}
+const gen = (w) => weiToGen(w) + " GEN";
+function bpsOf(wei, bps) { return (BigInt(wei) * BigInt(bps)) / 10000n; }
+function ago(iso) {
+  const t = Date.parse(iso); if (!t) return "";
+  const s = Math.max(0, Math.floor((Date.now() - t) / 1000));
+  if (s < 60) return "just now"; if (s < 3600) return Math.floor(s / 60) + " min ago";
+  if (s < 86400) return Math.floor(s / 3600) + " h ago"; return Math.floor(s / 86400) + " d ago";
+}
+function until(iso) {
+  const t = Date.parse(iso); if (!t) return "";
+  const s = Math.floor((t - Date.now()) / 1000);
+  if (s <= 0) return "now";
+  if (s < 90) return s + " s"; if (s < 5400) return Math.round(s / 60) + " min";
+  if (s < 172800) return Math.round(s / 3600) + " h"; return Math.round(s / 86400) + " d";
+}
+const isFuture = (iso) => Date.parse(iso) > Date.now();
+function dur(sec) { sec = Number(sec); return sec < 3600 ? Math.round(sec / 60) + " min" : sec < 172800 ? Math.round(sec / 360) / 10 + " h" : Math.round(sec / 8640) / 10 + " days"; }
+
+/* ---------- wallet ---------- */
+let client = null, account = null, usingInjected = false, walletLabel = "";
+const readClient = createClient({ chain: studionet });
+function hexChainId() { return "0x" + Number(studionet.id).toString(16); }
+async function ensureChain() {
+  if (!usingInjected || !window.ethereum) return;
+  const cur = await window.ethereum.request({ method: "eth_chainId" });
+  if (String(cur).toLowerCase() === hexChainId().toLowerCase()) return;
+  try { await window.ethereum.request({ method: "wallet_switchEthereumChain", params: [{ chainId: hexChainId() }] }); }
+  catch (e) {
+    await window.ethereum.request({ method: "wallet_addEthereumChain", params: [{
+      chainId: hexChainId(), chainName: studionet.name || "GenLayer Studio",
+      nativeCurrency: studionet.nativeCurrency || { name: "GEN", symbol: "GEN", decimals: 18 },
+      rpcUrls: studionet.rpcUrls?.default?.http || [] }] });
+  }
+}
+function setStatus() {
+  $("#statusDot").classList.toggle("on", !!client);
+  $("#walletPill").classList.toggle("on", !!client);
+  $("#statusText").textContent = client ? (walletLabel ? walletLabel + " · " : "") + short(account) : "Connect wallet";
+}
+function readTestWallets() {
+  try { const v = JSON.parse(sessionStorage.getItem(SESSION_SLOT) || "null"); if (v && Array.isArray(v.keys)) return v; } catch (e) {}
+  return { keys: [], current: -1 };
+}
+function writeTestWallets(v) { try { sessionStorage.setItem(SESSION_SLOT, JSON.stringify(v)); } catch (e) {} }
+function randomKey() { const b = new Uint8Array(32); crypto.getRandomValues(b); return "0x" + Array.from(b, (x) => x.toString(16).padStart(2, "0")).join(""); }
+function testName(i) { return "Wallet " + String.fromCharCode(65 + i); }
+function useTestWallet(i, quiet) {
+  const store = readTestWallets();
+  const pk = store.keys[i]; if (!pk) return;
+  const acct = createAccount(pk);
+  account = acct.address; usingInjected = false; walletLabel = testName(i);
+  client = createClient({ chain: studionet, account: acct });
+  store.current = i; writeTestWallets(store);
+  setStatus(); if (!quiet) { renderSheet(); route(); }
+}
+function addTestWallet() {
+  const store = readTestWallets();
+  if (store.keys.length >= 5) return;
+  store.keys.push(randomKey()); store.current = store.keys.length - 1; writeTestWallets(store);
+  useTestWallet(store.current);
+}
+async function connectInjected(out) {
+  if (!window.ethereum) { out.textContent = "No browser wallet found. Open this page inside your wallet app's browser, or use a test wallet / private key."; return; }
+  try {
+    const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+    account = accounts[0]; client = createClient({ chain: studionet, account }); usingInjected = true; walletLabel = "Wallet";
+    try { await ensureChain(); } catch (e) { out.textContent = "Connected, but could not switch to GenLayer Studio: " + (e?.message || e); }
+    setStatus(); closeSheet(); route();
+  } catch (e) { out.textContent = "Connection failed: " + (e?.message || e); }
+}
+function connectKey(value, out) {
+  let pk = String(value || "").trim();
+  if (/^[0-9a-fA-F]{64}$/.test(pk)) pk = "0x" + pk;
+  if (!/^0x[0-9a-fA-F]{64}$/.test(pk)) { out.textContent = "Expected 64 hex characters, optionally starting with 0x."; return; }
+  try {
+    const acct = createAccount(pk);
+    account = acct.address; usingInjected = false; walletLabel = "Key";
+    client = createClient({ chain: studionet, account: acct });
+    setStatus(); closeSheet(); route();
+  } catch (e) { out.textContent = "Could not use this key: " + (e?.message || e); }
+}
+function disconnect() {
+  client = null; account = null; walletLabel = "";
+  const store = readTestWallets(); store.current = -1; writeTestWallets(store);
+  setStatus(); closeSheet(); route();
+}
+async function fundAccount(addr, amount, out) {
+  const url = studionet.rpcUrls?.default?.http?.[0];
+  if (!url) { out.textContent = "No RPC URL available for this network."; return; }
+  try {
+    out.textContent = "Requesting test GEN...";
+    const res = await fetch(url, { method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "sim_fundAccount", params: [addr, Number(BigInt(amount) * WEI_PER_GEN)] }) });
+    const body = await res.json();
+    out.textContent = body.error ? "The Studio RPC refused: " + JSON.stringify(body.error) : "Done. Your balance updates in a few seconds.";
+  } catch (e) { out.textContent = "Request failed: " + (e?.message || e); }
+}
+const sheet = $("#walletSheet");
+function openSheet() { renderSheet(); sheet.hidden = false; }
+function closeSheet() { sheet.hidden = true; }
+function renderSheet() {
+  const body = $("#sheetBody"); body.replaceChildren();
+  const out = h("div", { class: "hint", style: "min-height:18px;margin:8px 0" });
+  const store = readTestWallets();
+  body.append(...clean([
+    h("p", { class: "dim small", text: "Test wallets live only in this browser tab. They let you play the developer, the challenger and the keeper from one phone." }),
+    ...store.keys.map((pk, i) => {
+      let addr = ""; try { addr = createAccount(pk).address; } catch (e) {}
+      return h("div", { class: "tw" + (store.current === i ? " cur" : "") },
+        h("div", {}, h("b", { text: testName(i) }), h("div", { class: "mono small dim", style: "overflow-wrap:anywhere", text: addr })),
+        h("div", { class: "row" },
+          h("button", { class: "btn small", type: "button", text: store.current === i ? "Active" : "Use", onclick: () => useTestWallet(i) }),
+          h("button", { class: "btn small ghost", type: "button", text: "Copy", onclick: () => copy(addr, out) })));
+    }),
+    h("div", { class: "row", style: "margin:6px 0 12px" },
+      h("button", { class: "btn small", type: "button", text: "+ New test wallet", disabled: store.keys.length >= 5, onclick: addTestWallet }),
+      h("button", { class: "btn small", type: "button", text: "Get 100 test GEN", disabled: !account, onclick: () => fundAccount(account, 100, out) })),
+    h("hr", { style: "border:0;border-top:1px solid var(--line);margin:14px 0" }),
+    h("button", { class: "btn block", type: "button", text: "Connect browser wallet (MetaMask, Rabby...)", onclick: () => connectInjected(out) }),
+    h("label", { class: "field", style: "margin-top:14px" }, h("span", { text: "Or paste a private key" }), h("input", { id: "pkInput", type: "password", placeholder: "0x...", autocomplete: "off" })),
+    h("button", { class: "btn block", type: "button", text: "Use this key", onclick: () => connectKey($("#pkInput").value, out) }),
+    out,
+    account ? h("div", { class: "box", style: "margin-top:8px" }, h("div", { class: "small faint", text: "Connected address" }), h("div", { class: "mono small", style: "overflow-wrap:anywhere", text: account }),
+      h("div", { class: "row", style: "margin-top:8px" }, h("button", { class: "btn small", type: "button", text: "Copy address", onclick: () => copy(account, out) }),
+        h("button", { class: "btn small danger", type: "button", text: "Disconnect", onclick: disconnect }))) : null]));
+}
+async function copy(text, out) {
+  try { await navigator.clipboard.writeText(String(text)); if (out) out.textContent = "Copied."; toast("Copied", "ok", 1400); }
+  catch (e) { if (out) out.textContent = "Select the text and copy it manually."; }
+}
+$("#walletPill").addEventListener("click", openSheet);
+$("#sheetClose").addEventListener("click", closeSheet);
+sheet.addEventListener("click", (e) => { if (e.target === sheet) closeSheet(); });
+
+/* ---------- toast / transaction tray ---------- */
+const tray = $("#tray");
+let trayTimer = null;
+function toast(title, kind, ms, body) {
+  clearTimeout(trayTimer);
+  tray.className = "tray show" + (kind ? " " + kind : "");
+  tray.replaceChildren(...[
+    h("div", { class: "tt" }, h("span", {}, kind === "wait" ? h("span", { class: "spin" }) : null, title),
+      h("button", { class: "btn small ghost", type: "button", text: "x", onclick: () => { tray.className = "tray"; } })),
+    body ? h("div", { class: "tb", text: body }) : null].filter(Boolean));
+  if (ms) trayTimer = setTimeout(() => { tray.className = "tray"; }, ms);
+}
+
+/* ---------- contract calls ---------- */
+function unwrap(receipt) {
+  let v = receipt?.consensus_data?.leader_receipt?.[0]?.result?.payload?.readable;
+  if (v === undefined) return null;
+  for (let i = 0; i < 3; i++) {
+    if (typeof v !== "string") break;
+    const t = v.trim();
+    if (!(t.startsWith("{") || t.startsWith("[") || t.startsWith('"'))) break;
+    try { v = JSON.parse(v); } catch (e) { break; }
+  }
+  return v;
+}
+function errorDetail(receipt) {
+  const r = receipt?.consensus_data?.leader_receipt?.[0];
+  const cands = [r?.result?.payload?.readable, r?.genvm_result?.stderr, r?.result?.payload];
+  for (const c of cands) if (typeof c === "string" && c.trim()) return c.trim().split("\n").slice(-3).join("\n").slice(0, 400);
+  return "";
+}
+async function read(functionName, args = []) { return readClient.readContract({ address: CONTRACT_ADDRESS, functionName, args }); }
+async function readJson(functionName, args = []) { const raw = await read(functionName, args); return typeof raw === "string" ? JSON.parse(raw) : raw; }
+function needWallet() {
+  if (client) return true;
+  toast("Connect a wallet first", "err", 3500, "Tap the wallet button at the top. A test wallet takes one tap.");
+  openSheet(); return false;
+}
+async function write(label, functionName, args, valueWei, waitNote) {
+  if (CONTRACT_ADDRESS === ZERO_ADDRESS) { toast("Contract address not set", "err", 0, "Set DEFAULT_CONTRACT_ADDRESS in index.html, or open this page with ?contract=0x..."); return null; }
+  if (!needWallet()) return null;
+  try {
+    toast("Confirm " + label + " in your wallet...", "wait");
+    await ensureChain();
+    const slow = setTimeout(() => toast("Still waiting for the wallet...", "wait", 0, "Open your wallet app and look for a pending request."), 20000);
+    let hash;
+    try { hash = await client.writeContract({ address: CONTRACT_ADDRESS, functionName, args, value: valueWei ?? 0n }); }
+    finally { clearTimeout(slow); }
+    toast(label + " sent", "wait", 0, (waitNote || "Waiting for validators to finalize...") + "\nTx " + short(hash));
+    const receipt = await client.waitForTransactionReceipt({ hash, status: "FINALIZED", interval: 4000, retries: 60 });
+    const failed = receipt?.consensus_data?.leader_receipt?.[0]?.execution_result === "ERROR";
+    if (failed) { toast(label + " was refused", "err", 0, (errorDetail(receipt) || "The contract rejected this call.") + "\nTx " + short(hash)); return null; }
+    const result = unwrap(receipt);
+    if (result && typeof result === "object" && result.rejected) {
+      toast(label + " was refused", "err", 0, result.rejected + "\nYour " + gen(result.refunded_wei) + " were credited back; withdraw them from the Profile page.");
+      return null;
+    }
+    toast(label + " done", "ok", 5000, "Tx " + short(hash));
+    return result === null ? true : result;
+  } catch (e) { toast(label + " failed", "err", 0, String(e?.message || e).slice(0, 400)); return null; }
+}
+const needContract = () => CONTRACT_ADDRESS !== ZERO_ADDRESS;
+
+/* ---------- parsing helpers ---------- */
+function parseEvidence(text) {
+  const t = String(text || "").trim();
+  let m = t.match(/^https?:\/\/github\.com\/([\w.-]+\/[\w.-]+)\/pull\/(\d+)/i) || t.match(/^https?:\/\/api\.github\.com\/repos\/([\w.-]+\/[\w.-]+)\/pulls\/(\d+)/i);
+  if (m) return { kind: "pull_request", repo: m[1], ref: m[2] };
+  m = t.match(/^https?:\/\/github\.com\/([\w.-]+\/[\w.-]+)\/commit\/([0-9a-fA-F]+)/i) || t.match(/^https?:\/\/api\.github\.com\/repos\/([\w.-]+\/[\w.-]+)\/commits\/([0-9a-fA-F]+)/i);
+  if (m) {
+    if (m[2].length !== 40) return { error: "That is a short commit hash. Open the commit on GitHub and copy the full 40-character hash (or the full URL)." };
+    return { kind: "commit", repo: m[1], ref: m[2].toLowerCase() };
+  }
+  m = t.match(/^https?:\/\/github\.com\/([\w.-]+\/[\w.-]+)\/releases\/tag\/([^\s?#]+)/i) || t.match(/^https?:\/\/api\.github\.com\/repos\/([\w.-]+\/[\w.-]+)\/releases\/tags\/([^\s?#]+)/i);
+  if (m) return { kind: "release", repo: m[1], ref: decodeURIComponent(m[2]) };
+  return { error: "Paste a GitHub pull request, commit or release URL." };
+}
+function parseGist(text) {
+  const t = String(text || "").trim();
+  const m = t.match(/gist\.github\.com\/(?:([\w-]+)\/)?([0-9a-fA-F]{8,64})/i) || t.match(/^([0-9a-fA-F]{8,64})$/);
+  if (!m) return null;
+  return m.length === 3 ? { user: m[1] || "", id: m[2].toLowerCase() } : { user: "", id: m[1].toLowerCase() };
+}
+const githubLink = (c) => c.kind === "pull_request" ? `https://github.com/${c.repo}/pull/${c.ref}` : c.kind === "commit" ? `https://github.com/${c.repo}/commit/${c.ref}` : `https://github.com/${c.repo}/releases/tag/${c.ref}`;
+
+/* ---------- shared UI pieces ---------- */
+const statusPill = (s) => h("span", { class: "pill p-" + s }, h("i"), STATUS_LABEL[s] || s);
+function medal(name) {
+  const c = BADGE_COLOR[name] || BADGE_COLOR.NONE;
+  const node = svg(`<svg viewBox="0 0 30 34" aria-hidden="true"><path d="M15 1l12 4.5v9.5c0 8-5 14-12 18-7-4-12-10-12-18V5.5z" fill="${c}" opacity=".18" stroke="${c}" stroke-width="2"/><path d="M9.5 16.5l4 4 7.5-8" fill="none" stroke="${c}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`);
+  return h("span", { class: "medal", style: "color:" + c }, node, name === "NONE" ? "No badge yet" : name[0] + name.slice(1).toLowerCase());
+}
+function ring(score, badge, next) {
+  const R = 54, C = 2 * Math.PI * R;
+  const prevAt = { NONE: 0, BRONZE: 20, SILVER: 60, GOLD: 150, PLATINUM: 400 }[badge] || 0;
+  const frac = next ? Math.min(1, Math.max(0.03, (score - prevAt) / (next.at - prevAt))) : 1;
+  const node = svg(`<svg viewBox="0 0 132 132"><defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8B6CFF"/><stop offset="1" stop-color="#27D3EE"/></linearGradient></defs><circle cx="66" cy="66" r="${R}" fill="none" stroke="var(--line)" stroke-width="11"/><circle cx="66" cy="66" r="${R}" fill="none" stroke="url(#rg)" stroke-width="11" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C * (1 - frac)}"/></svg>`);
+  return h("div", { class: "ring" }, node, h("div", { class: "num" }, h("div", {}, h("b", { text: String(score) }), h("span", { text: "REPUTATION" }))));
+}
+function claimCard(c) {
+  return h("a", { class: "claim", href: "#/claim/" + c.claim_id },
+    h("div", { class: "kind" }, svg(KIND_ICON[c.kind] || KIND_ICON.commit)),
+    h("div", { style: "min-width:0" },
+      h("div", { class: "st", text: c.statement }),
+      h("div", { class: "meta", text: `${KIND_LABEL[c.kind] || c.kind} · ${c.repo} · @${c.login}` }),
+      h("div", { class: "row", style: "gap:6px;margin-top:7px" }, ...c.tags.map((t) => h("span", { class: "chip", text: t })))),
+    h("div", { class: "side" }, statusPill(c.status), h("div", { class: "pts" + (c.points ? "" : " zero"), text: c.points ? "+" + c.points : "0" }), h("div", { class: "small faint", text: gen(c.bond) })));
+}
+function skeletons(n = 3) { return Array.from({ length: n }, () => h("div", { class: "skel" })); }
+function emptyState(icon, title, text, action) {
+  return h("div", { class: "empty" }, h("div", { class: "big", text: icon }), h("h3", { text: title }), h("p", { text }), action || null);
+}
+function errorBox(e) { return h("div", { class: "banner bad", text: "Could not load: " + String(e?.message || e).slice(0, 300) }); }
+function notConfigured() {
+  return h("div", { class: "banner warn" }, h("b", { text: "Contract address not set. " }),
+    "Edit DEFAULT_CONTRACT_ADDRESS in index.html after deploying, or open this page with ?contract=0x... to try a deployment.");
+}
+
+/* ---------- views ---------- */
+let renderToken = 0;
+const view = $("#view");
+const clean = (list) => list.flat().filter((x) => x !== null && x !== undefined && x !== false);
+function mount(...nodes) { view.replaceChildren(...clean(nodes)); }
+
+async function viewExplore(stale) {
+  const state = { filter: "all", q: "", offset: 0, all: [], total: 0 };
+  const listBox = h("div", {}, ...skeletons());
+  const more = h("button", { class: "btn block ghost", type: "button", text: "Load more", hidden: true, style: "margin-top:6px" });
+  const statsBox = h("div", { class: "grid3", style: "margin:16px 0 18px" });
+  const chips = h("div", { class: "chips" });
+  const search = h("input", { type: "search", placeholder: "Search by repo, @login, skill or text", style: "margin-bottom:12px" });
+
+  mount(
+    h("section", { class: "hero" },
+      h("h1", {}, "Developer reputation you can ", h("span", { class: "grad-text", text: "stake on" }), "."),
+      h("p", { text: "Post a skill claim, back it with GEN, and let GenLayer validators check the GitHub evidence. Verified claims earn score and badges. A false claim loses its bond." }),
+      h("div", { class: "row" },
+        h("a", { class: "btn primary", href: "#/new", text: "Post a claim" }),
+        h("a", { class: "btn", href: "#/guide", text: "Test it in 5 minutes" }),
+        h("a", { class: "btn ghost", href: "#/integrate", text: "Use it in a contract" }))),
+    needContract() ? null : notConfigured(), statsBox, chips, search, listBox, more);
+
+  const drawChips = () => {
+    chips.replaceChildren(...["all", ...STATUSES.slice(0, 6)].map((s) => h("button", { type: "button", class: "fchip" + (state.filter === s ? " on" : ""),
+      text: s === "all" ? "All" : STATUS_LABEL[s], onclick: () => { state.filter = s; drawChips(); drawList(); } })));
+  };
+  const drawList = () => {
+    const q = state.q.trim().toLowerCase();
+    const rows = state.all.filter((c) => (state.filter === "all" || c.status === state.filter)
+      && (!q || (c.repo + " " + c.login + " " + c.statement + " " + c.tags.join(" ") + " " + c.claim_id).toLowerCase().includes(q)));
+    listBox.replaceChildren(...(rows.length ? rows.map(claimCard) : [emptyState("🛡️", state.all.length ? "Nothing matches" : "No claims yet",
+      state.all.length ? "Try another filter or load more." : "Be the first: bind your GitHub login and post a claim.", state.all.length ? null : h("a", { class: "btn primary", href: "#/new", text: "Post the first claim" }))]));
+    more.hidden = state.all.length >= state.total;
+  };
+  const load = async () => {
+    try {
+      const page = await readJson("list_claims", [state.offset, LIST_LIMIT]);
+      if (stale()) return;
+      state.total = page.total; const seen = new Set(state.all.map((c) => c.claim_id)); state.all.push(...page.claims.filter((c) => !seen.has(c.claim_id))); state.offset += page.claims.length; drawList();
+    } catch (e) { if (!stale()) listBox.replaceChildren(errorBox(e)); }
+  };
+  drawChips(); search.addEventListener("input", () => { state.q = search.value; drawList(); });
+  more.addEventListener("click", load);
+  if (!needContract()) { listBox.replaceChildren(); return; }
+  try {
+    const s = await readJson("get_stats");
+    if (stale()) return;
+    statsBox.replaceChildren(...[[s.claims, "claims posted"], [s.bound_wallets, "GitHub identities bound"], [s.challenges, "challenges filed"],
+      [weiToGen(s.locked), "GEN bonded now"], [weiToGen(s.slashed), "GEN slashed"], [weiToGen(s.pool), "GEN in keeper pool"]]
+      .map(([v, l]) => h("div", { class: "stat" }, h("b", { text: String(v) }), h("span", { text: l }))));
+  } catch (e) { statsBox.remove(); }
+  await load();
+}
+
+function stepperFor(c) {
+  const labels = ["Posted", "Verified", "Challenge window", "Final"];
+  let idx = 0, fail = -1;
+  if (c.status === "pending") idx = 0;
+  else if (c.status === "verified") idx = isFuture(c.challenge_deadline) ? 2 : 3;
+  else if (c.status === "challenged") idx = 2;
+  else if (c.status === "finalized") idx = 4;
+  else if (c.status === "rejected") { idx = 1; fail = 1; } else if (c.status === "overturned") { idx = 2; fail = 2; } else if (c.status === "withdrawn") { idx = 0; fail = 0; }
+  return h("div", { class: "stepper" }, ...labels.map((l, i) => h("div", { class: "step " + (i === fail ? "fail" : i < idx ? "done" : i === idx ? "now" : "") }, h("div", { class: "bar" }), l)));
+}
+function roleOf(c) {
+  const me = String(account || "").toLowerCase();
+  if (!me) return null;
+  if (me === c.owner) return "claimant";
+  if (c.challenge && me === c.challenge.challenger) return "challenger";
+  return "visitor";
+}
+function rulesTable(c, k) {
+  const B = BigInt(c.bond);
+  const slash = bpsOf(B, k.slash_bps), toCh = bpsOf(slash, k.challenger_share_bps);
+  const minStake = (B * BigInt(k.challenge_stake_bps) + 9999n) / 10000n;
+  const rows = [
+    ["No evidence match at verification", `Claimant gets back ${gen(B - bpsOf(B, k.reject_fee_bps))}; ${gen(bpsOf(B, k.reject_fee_bps))} goes to the keeper pool.`],
+    ["Challenge upheld", `Claimant loses ${gen(slash)} (keeps ${gen(B - slash)}). Challenger gets stake back + ${gen(toCh)}. Pool gets ${gen(slash - toCh)}.`],
+    ["Challenge dismissed", `Challenger loses the stake: ${k.dismiss_claimant_share_bps / 100}% to the claimant, the rest to the pool. Claim earns +${k.survival_bonus} score.`],
+    ["Challenge limit", `${k.max_challenges} per claim, voided ones included.`],
+    ["Minimum challenge stake", gen(minStake)],
+    ["Release the bond", `After the ${dur(k.challenge_window_seconds)} challenge window with no open challenge. Score stays.`],
+  ];
+  return h("table", { class: "t" }, h("tbody", {}, ...rows.map(([a, b]) => h("tr", {}, h("td", { text: a, style: "font-weight:700;width:38%" }), h("td", { class: "dim", text: b })))));
+}
+
+async function viewClaim(id, stale) {
+  mount(...skeletons(2));
+  let c, k;
+  try { [c, k] = await Promise.all([readJson("get_claim", [id]), readJson("get_constants")]); } catch (e) { if (!stale()) mount(h("a", { href: "#/", text: "< Back" }), errorBox(e)); return; }
+  if (stale()) return;
+  const role = roleOf(c);
+  const roleLabel = { claimant: "You are the claimant", challenger: "You are the challenger", visitor: "You are a visitor" }[role];
+  const refresh = () => route();
+  const actions = h("div", { class: "stack" });
+  const addAction = (title, hint, ...controls) => actions.append(h("div", { class: "box" }, h("h3", { text: title }), hint ? h("p", { class: "dim small", text: hint }) : null, ...controls));
+  const btn = (label, kind, run, disabledWhy) => h("div", {}, h("button", { class: "btn block " + kind, type: "button", disabled: !!disabledWhy, text: label, onclick: async () => { if (await run()) refresh(); } }),
+    disabledWhy ? h("div", { class: "why", text: disabledWhy }) : null);
+
+  if (c.status === "pending") {
+    addAction("Run verification", "Anyone can trigger it. Validators fetch the GitHub record, check authorship in code, then judge whether it supports the statement. Takes about a minute.",
+      btn("Verify claim now", "primary", () => write("Verification", "verify_claim", [c.claim_id], 0n, "Validators are reading GitHub and judging the evidence. This can take a minute...")));
+    if (role === "claimant") addAction("Change your mind?", "Withdraw before verification and get the full bond back, no fee.",
+      btn("Withdraw claim", "", () => write("Withdraw", "withdraw_claim", [c.claim_id], 0n)));
+  } else if (c.status === "verified") {
+    if (role === "claimant") {
+      const open = isFuture(c.challenge_deadline);
+      addAction("Release your bond", "Once the challenge window ends your score is permanent and the bond returns to you.",
+        btn("Release bond", "good", () => write("Release bond", "release_bond", [c.claim_id], 0n), open ? "Challenge window open for " + until(c.challenge_deadline) + "." : ""));
+    } else {
+      const minStake = (BigInt(c.bond) * BigInt(k.challenge_stake_bps) + 9999n) / 10000n;
+      const stake = h("input", { type: "number", min: "1", step: "1", inputmode: "numeric", value: String((minStake + WEI_PER_GEN - 1n) / WEI_PER_GEN) });
+      const why = h("textarea", { placeholder: "Why is this claim false or overstated? (20-500 characters)", maxlength: "500" });
+      const counter = h("input", { type: "url", placeholder: "Optional: https://api.github.com/repos/... counter-evidence" });
+      const go = h("button", { class: "btn danger block", type: "button", text: "Stake and challenge", onclick: async () => {
+        const n = Number(stake.value);
+        if (!Number.isInteger(n) || n < 1) return toast("Stake must be a whole number of GEN", "err", 4000);
+        if (BigInt(n) * WEI_PER_GEN < minStake) return toast("Stake is below the minimum", "err", 4000, "Minimum: " + gen(minStake));
+        if (why.value.trim().length < 20) return toast("Explain the allegation in at least 20 characters", "err", 4000);
+        if (await write("Challenge", "challenge_claim", [c.claim_id, why.value.trim(), counter.value.trim()], BigInt(n) * WEI_PER_GEN)) refresh();
+      } });
+      addAction("Challenge this claim", `Stake at least ${gen(minStake)} (half the bond). If validators agree the claim is false you win most of the bond. If not, you lose your stake.`,
+        h("label", { class: "field" }, h("span", { text: "Your stake (whole GEN)" }), stake), h("label", { class: "field" }, h("span", { text: "Allegation" }), why),
+        h("label", { class: "field" }, h("span", { text: "Counter-evidence link (optional)" }), counter,
+          h("div", { class: "hint", text: "Only https://api.github.com/repos/... commit, pull, release, issue, compare or branch URLs are accepted." })), go);
+      if (!role) go.after(h("div", { class: "why", text: "Connect a wallet to challenge." }));
+    }
+  } else if (c.status === "challenged") {
+    const ch = c.challenge || {};
+    addAction("Resolve the challenge", "Anyone can trigger it. Validators re-read the evidence together with the allegation and decide.",
+      btn("Resolve challenge", "primary", () => write("Resolution", "resolve_challenge", [c.claim_id], 0n, "Validators are re-checking the evidence against the allegation...")));
+    addAction("Stuck?", "If validators cannot decide before the deadline, anyone can void the challenge and both sides are refunded.",
+      btn("Void challenge", "", () => write("Void challenge", "void_challenge", [c.claim_id], 0n), isFuture(ch.resolve_by) ? "Available in " + until(ch.resolve_by) + "." : ""));
+  } else {
+    const msg = { finalized: "This claim is final. Its score is permanent and the bond was returned.", rejected: "Validators did not find support for this claim. 90% of the bond was refunded.",
+      overturned: "A challenge was upheld. The bond was slashed and the claimant received a strike.", withdrawn: "The claimant withdrew this claim before verification." }[c.status];
+    actions.append(h("div", { class: "banner " + (c.status === "finalized" ? "good" : "info"), text: msg }));
+  }
+
+  const ch = c.challenge;
+  mount(
+    h("a", { href: "#/", class: "small dim", text: "< All claims" }),
+    h("div", { class: "card glow", style: "margin-top:10px" },
+      h("div", { class: "row between" }, statusPill(c.status), role ? h("span", { class: "role", text: roleLabel }) : h("span", { class: "small faint", text: "Connect a wallet to act" })),
+      h("h2", { style: "margin:12px 0 8px", text: c.statement }),
+      h("div", { class: "row", style: "margin-bottom:12px" }, ...c.tags.map((t) => h("span", { class: "chip", text: t }))),
+      stepperFor(c),
+      c.reasoning ? h("div", { class: "box small", style: "margin-top:10px" }, h("b", { text: "Validator note: " }), c.reasoning) : null),
+    h("div", { class: "card" }, h("h3", { text: "What can you do now" }), actions),
+    h("div", { class: "card" }, h("h3", { text: "Claim details" }),
+      h("dl", { class: "kv" },
+        h("dt", { text: "Claimant" }), h("dd", {}, h("a", { href: "#/profile/" + c.owner, text: "@" + c.login }), " ", h("span", { class: "mono faint", text: short(c.owner) })),
+        h("dt", { text: "Evidence" }), h("dd", {}, h("a", { href: githubLink(c), target: "_blank", rel: "noopener", text: `${KIND_LABEL[c.kind]} · ${c.repo} · ${c.kind === "commit" ? c.ref.slice(0, 10) : c.ref}` })),
+        h("dt", { text: "Bond" }), h("dd", { text: gen(c.bond) }),
+        h("dt", { text: "Score" }), h("dd", { text: c.status === "verified" || c.status === "challenged" || c.status === "finalized" ? "+" + (c.points + c.survived * k.survival_bonus) + (c.survived ? ` (includes ${c.survived} survived challenge${c.survived > 1 ? "s" : ""})` : "") : "0" }),
+        h("dt", { text: "Posted" }), h("dd", { text: ago(c.created_at) }),
+        c.verified_at ? [h("dt", { text: "Verified" }), h("dd", { text: ago(c.verified_at) + (c.status === "verified" && isFuture(c.challenge_deadline) ? " · window closes in " + until(c.challenge_deadline) : "") })] : null,
+        c.facts ? [h("dt", { text: "Checked in code" }), h("dd", { text: `author @${c.facts.author || "?"} · size ${c.facts.size} lines · ${c.facts.date || "no date"}` })] : null)),
+    ch ? h("div", { class: "card" }, h("h3", { text: "Open challenge" }),
+      h("dl", { class: "kv" }, h("dt", { text: "Challenger" }), h("dd", {}, h("a", { href: "#/profile/" + ch.challenger, text: short(ch.challenger) })),
+        h("dt", { text: "Stake" }), h("dd", { text: gen(ch.stake) }), h("dt", { text: "Allegation" }), h("dd", { text: ch.allegation }),
+        ch.counter_url ? [h("dt", { text: "Counter-evidence" }), h("dd", { class: "mono", text: ch.counter_url })] : null,
+        h("dt", { text: "Resolve by" }), h("dd", { text: isFuture(ch.resolve_by) ? "in " + until(ch.resolve_by) : "deadline passed" }))) : null,
+    c.challenge_log && c.challenge_log.length ? h("div", { class: "card" }, h("h3", { text: "Challenge history" }),
+      ...c.challenge_log.map((l) => h("div", { class: "row between small", style: "padding:6px 0" }, h("span", { text: l.outcome.toUpperCase() }), h("span", { class: "faint", text: short(l.challenger) + " · " + ago(l.at) })))) : null,
+    h("div", { class: "card" }, h("h3", { text: "The rules, in this claim's numbers" }), rulesTable(c, k)));
+}
+
+const stepTodo = (n, title, text, done, next, action) => h("div", { class: "todo" + (done ? " done" : next ? " next" : "") },
+  h("div", { class: "n", text: done ? "✓" : String(n) }), h("div", {}, h("b", { text: title }), h("div", { class: "dim small", text }), action ? h("div", { style: "margin-top:8px" }, action) : null),
+  h("span", { class: "pill " + (done ? "p-verified" : next ? "p-pending" : "p-withdrawn"), text: done ? "Done" : next ? "Next" : "Later" }));
+
+async function viewNew(stale) {
+  mount(h("h1", { style: "font-size:30px", text: "Post a skill claim" }), h("p", { class: "dim", text: "Three quick steps. Your bond stays yours if the claim is true." }), ...skeletons(2));
+  let login = "", k = null;
+  try {
+    if (needContract()) k = await readJson("get_constants");
+    if (account && needContract()) login = await read("get_login", [account]);
+  } catch (e) { if (!stale()) { view.append(errorBox(e)); } return; }
+  if (stale()) return;
+  const body = [h("h1", { style: "font-size:30px", text: "Post a skill claim" }), h("p", { class: "dim", text: "Three quick steps. Your bond stays yours if the claim is true." })];
+  if (!needContract()) body.push(notConfigured());
+
+  // step 1
+  body.push(h("div", { class: "card" }, stepTodo(1, "Connect a wallet", account ? "Connected as " + short(account) : "A test wallet takes one tap.", !!account, !account,
+    account ? null : h("button", { class: "btn primary small", type: "button", text: "Connect", onclick: openSheet }))));
+
+  // step 2
+  const gistInput = h("input", { placeholder: "https://gist.github.com/yourname/abc123...", autocomplete: "off" });
+  const loginInput = h("input", { placeholder: "your-github-login", autocomplete: "off", autocapitalize: "off", value: "" });
+  const proof = account ? `skillbond:${account.toLowerCase()}` : "skillbond:<connect a wallet first>";
+  const step2 = h("div", { class: "card" }, stepTodo(2, "Bind your GitHub login", login ? "Bound to @" + login + ". You can post claims." : "Prove this wallet controls your GitHub account with a public gist.", !!login, !!account && !login, null));
+  if (account && !login) {
+    step2.append(h("div", { class: "stack", style: "margin-top:6px" },
+      h("div", { class: "small dim", text: "1. Create a public gist containing exactly this line:" }),
+      h("div", { class: "copyline" }, h("div", { class: "code", text: proof }), h("button", { class: "btn", type: "button", text: "Copy", onclick: () => copy(proof) })),
+      h("a", { class: "btn", href: "https://gist.github.com/", target: "_blank", rel: "noopener", text: "Open gist.github.com" }),
+      h("div", { class: "small dim", text: "2. Paste the gist URL here:" }), gistInput,
+      h("label", { class: "field", style: "margin:0" }, h("span", { text: "3. Your GitHub login" }), loginInput),
+      h("button", { class: "btn primary block", type: "button", text: "Bind GitHub login", onclick: async () => {
+        const g = parseGist(gistInput.value);
+        if (!g) return toast("That does not look like a gist URL", "err", 4000, "Example: https://gist.github.com/yourname/0123456789abcdef");
+        const who = (loginInput.value.trim() || g.user).replace(/^@/, "");
+        if (!who) return toast("Enter your GitHub login", "err", 3500);
+        if (await write("Binding", "bind_github", [who, g.id], 0n, "Validators are reading your gist on GitHub...")) route();
+      } })));
+  }
+  body.push(step2);
+
+  // step 3
+  const ev = h("input", { placeholder: "https://github.com/owner/repo/pull/123", autocomplete: "off" });
+  const evInfo = h("div", { class: "hint" });
+  const statement = h("textarea", { placeholder: "What exactly did you ship? Be specific and honest. e.g. Built the retry layer for the payments client", maxlength: "280" });
+  const tags = h("input", { placeholder: "rust, consensus, zk", autocomplete: "off" });
+  const minGen = k ? Number((BigInt(k.min_bond) + WEI_PER_GEN - 1n) / WEI_PER_GEN) : 1;
+  const bond = h("input", { type: "number", min: String(minGen), step: "1", inputmode: "numeric", value: String(Math.max(minGen, 2)) });
+  const est = h("div", { class: "hint" });
+  let parsed = null;
+  const upd = () => {
+    parsed = ev.value.trim() ? parseEvidence(ev.value) : null;
+    evInfo.textContent = !parsed ? "We read the kind, repository and reference from the URL." : parsed.error ? parsed.error : `${KIND_LABEL[parsed.kind]} · ${parsed.repo} · ${parsed.kind === "commit" ? parsed.ref.slice(0, 10) : parsed.ref}`;
+    evInfo.style.color = parsed && parsed.error ? "var(--bad)" : "";
+    const n = Number(bond.value); let w = 1;
+    if (k && n >= 1) for (const [t, x] of k.bond_weights) if (BigInt(n) * WEI_PER_GEN >= BigInt(t)) { w = x; break; }
+    const base = parsed && !parsed.error && k ? k.kind_points[parsed.kind] : null;
+    est.textContent = base ? `Estimated score if verified: ${base * w} to ${(base + 10) * w} (size bonus depends on lines changed).` : "Bigger bonds weigh more: 10 GEN x2, 100 GEN x3, 1000 GEN x4.";
+  };
+  [ev, bond].forEach((x) => x.addEventListener("input", upd)); upd();
+  const step3 = h("div", { class: "card" }, stepTodo(3, "Describe and back your claim", login ? "This is what validators will check." : "Bind your GitHub login first.", false, !!login, null));
+  if (login) {
+    step3.append(h("div", { style: "margin-top:6px" },
+      h("label", { class: "field" }, h("span", { text: "Evidence link" }), ev, evInfo),
+      h("label", { class: "field" }, h("span", { text: "Claim statement (10-280 characters)" }), statement),
+      h("label", { class: "field" }, h("span", { text: "Skill tags (1-3, comma separated)" }), tags),
+      h("label", { class: "field" }, h("span", { text: `Bond in whole GEN (minimum ${minGen})` }), bond, est),
+      h("button", { class: "btn primary block", type: "button", text: "Post claim and lock bond", onclick: async () => {
+        if (!parsed || parsed.error) return toast(parsed?.error || "Paste an evidence link first", "err", 4500);
+        const n = Number(bond.value);
+        if (!Number.isInteger(n) || n < minGen) return toast("Bond must be a whole number of GEN, at least " + minGen, "err", 4500);
+        if (statement.value.trim().length < 10) return toast("Write a statement of at least 10 characters", "err", 4000);
+        const res = await write("Post claim", "post_claim", [parsed.kind, parsed.repo, parsed.ref, statement.value.trim(), tags.value.trim()], BigInt(n) * WEI_PER_GEN);
+        if (res && res.claim_id) location.hash = "#/claim/" + res.claim_id; else if (res) route();
+      } })));
+  }
+  body.push(step3);
+  mount(...body);
+}
+
+async function viewProfile(addr, stale) {
+  const target = addr || account;
+  if (!target) {
+    const input = h("input", { placeholder: "0x... wallet address", autocomplete: "off" });
+    mount(h("h1", { style: "font-size:30px", text: "Profile" }),
+      emptyState("👤", "Connect a wallet or look someone up", "Your profile shows your score, badge, skills and every claim.",
+        h("button", { class: "btn primary", type: "button", text: "Connect wallet", onclick: openSheet })),
+      h("div", { class: "card" }, h("h3", { text: "Look up any address" }), input,
+        h("button", { class: "btn block", style: "margin-top:10px", type: "button", text: "Open profile", onclick: () => { if (/^0x[0-9a-fA-F]{40}$/.test(input.value.trim())) location.hash = "#/profile/" + input.value.trim(); else toast("Enter a valid 0x address", "err", 3000); } })));
+    return;
+  }
+  mount(...skeletons(3));
+  let p; try { p = await readJson("get_profile", [target]); } catch (e) { if (!stale()) mount(errorBox(e)); return; }
+  if (stale()) return;
+  const mine = account && target.toLowerCase() === account.toLowerCase();
+  const skills = Object.entries(p.skills).sort((a, b) => b[1] - a[1]);
+  const topSkill = skills.length ? skills[0][1] : 1;
+  const out = h("div", { class: "hint" });
+  const pend = BigInt(p.pending_withdrawal || "0");
+  mount(
+    h("div", { class: "card glow" },
+      h("div", { class: "row", style: "gap:14px;margin-bottom:14px" },
+        h("div", { class: "avatar", text: (p.login || "?")[0].toUpperCase() }),
+        h("div", { class: "grow" }, h("h2", { text: p.login ? "@" + p.login : "Unbound wallet" }), h("div", { class: "mono small faint", style: "overflow-wrap:anywhere", text: p.address })),
+        p.verified ? h("span", { class: "pill p-verified", text: "✓ Verified" }) : h("span", { class: "pill p-withdrawn", text: "Not verified" })),
+      h("div", { class: "row", style: "gap:18px" }, ring(p.score, p.badge, p.next_badge),
+        h("div", { class: "stack grow" }, medal(p.badge),
+          p.next_badge ? h("div", { class: "small dim", text: `${p.next_badge.at - p.score} more points to ${p.next_badge.name[0] + p.next_badge.name.slice(1).toLowerCase()}` }) : h("div", { class: "small dim", text: "Top badge reached" }),
+          h("div", { class: "row" }, h("button", { class: "btn small", type: "button", text: "Copy profile link", onclick: () => copy(location.origin + location.pathname + "#/profile/" + p.address, out) }),
+            mine ? null : h("a", { class: "btn small ghost", href: "#/profile", text: "My profile" })), out))),
+    h("div", { class: "grid3" },
+      ...[[p.earned, "points earned"], [p.strikes, "strikes (-" + p.penalties + ")"], [gen(p.bonded), "bonded now"], [(p.counts.verified || 0) + (p.counts.challenged || 0) + (p.counts.finalized || 0), "active claims"], [p.open_challenges, "open challenges"], [Object.values(p.counts).reduce((a, b) => a + b, 0), "claims total"]]
+        .map(([v, l]) => h("div", { class: "stat" }, h("b", { text: String(v) }), h("span", { text: l })))),
+    mine && pend > 0n ? h("div", { class: "card", style: "margin-top:14px" }, h("div", { class: "row between" }, h("div", {}, h("b", { text: gen(pend) + " ready to withdraw" }), h("div", { class: "small dim", text: "Refunds, rewards and returned bonds wait here." })),
+      h("button", { class: "btn good", type: "button", text: "Withdraw", onclick: async () => { if (await write("Withdraw", "withdraw", [], 0n)) route(); } }))) : null,
+    h("div", { class: "card", style: "margin-top:14px" }, h("h3", { text: "Skills" }),
+      skills.length ? skills.map(([t, v]) => h("div", { class: "bar-row" }, h("span", { text: t }), h("div", { class: "tr" }, h("div", { class: "fl", style: `width:${Math.max(6, Math.round(v / topSkill * 100))}%` })), h("b", { text: String(v) })))
+        : h("div", { class: "dim small", text: "Skills appear here once a claim is verified." })),
+    h("h2", { style: "margin:18px 0 10px", text: "Claims" }),
+    ...(p.claims.length ? p.claims.map(claimCard) : [emptyState("📝", "No claims yet", mine ? "Post your first claim to start building reputation." : "This wallet has not posted claims.", mine ? h("a", { class: "btn primary", href: "#/new", text: "Post a claim" }) : null)]));
+}
+
+const EV_ICON = { bound: "🔗", unbound: "⛓️‍💥", posted: "📝", verified: "✅", rejected: "🚫", challenged: "⚔️", overturned: "💥", dismissed: "🛡️", voided: "↩️", finalized: "🏁", withdrawn: "↩️" };
+async function viewLedger(stale) {
+  const box = h("div", { class: "card" }); const acc = h("div", { class: "card" }); const rules = h("div", { class: "card" });
+  const more = h("button", { class: "btn block ghost", type: "button", text: "Load more events", hidden: true });
+  mount(h("h1", { style: "font-size:30px", text: "Ledger" }), h("p", { class: "dim", text: "Every state change, and where every wei is." }), acc, rules, h("h2", { style: "margin:10px 0", text: "Activity" }), box, more);
+  box.replaceChildren(...skeletons(2));
+  let offset = 0, total = 0;
+  const load = async () => {
+    try {
+      const d = await readJson("get_ledger", [offset, 20]); if (stale()) return;
+      if (offset === 0) { box.replaceChildren();
+        const a = d.accounting, t = d.totals;
+        acc.replaceChildren(h("div", { class: "row between" }, h("h3", { text: "Where the GEN is" }), h("span", { class: "pill " + (a.solvent ? "p-verified" : "p-overturned"), text: a.solvent ? "Fully backed" : "Shortfall!" })),
+          h("div", { class: "grid2", style: "margin-top:8px" }, ...[["Contract balance", a.contract_balance], ["Locked in claims & challenges", a.locked], ["Owed to wallets", a.pending_withdrawals], ["Keeper pool", a.pool]].map(([l, v]) => h("div", { class: "stat" }, h("b", { text: gen(v) }), h("span", { text: l })))),
+          h("div", { class: "small dim", style: "margin-top:10px", text: `${t.claims} claims · ${t.challenges} challenges · ${t.bound_wallets} identities · ${gen(t.slashed)} slashed · ${gen(t.keeper_rewards_paid)} paid to keepers` })); }
+      total = d.total_events; d.events.forEach((e) => box.append(h("div", { class: "ev" }, h("div", { class: "ic", text: EV_ICON[e.type] || "•" }),
+        h("div", {}, h("div", { class: "t" }, e.type[0].toUpperCase() + e.type.slice(1), e.claim_id ? [" · ", h("a", { href: "#/claim/" + e.claim_id, text: e.claim_id })] : null, e.amount !== "0" ? " · " + gen(e.amount) : ""),
+          h("div", { class: "d", text: `${e.detail} — ${short(e.actor)} · ${ago(e.at)}` })))));
+      offset += d.events.length; more.hidden = offset >= total;
+      if (!total) box.replaceChildren(emptyState("📒", "No activity yet", "Events appear here as soon as someone binds a login or posts a claim."));
+    } catch (e) { if (!stale()) box.replaceChildren(errorBox(e)); }
+  };
+  more.addEventListener("click", load);
+  if (!needContract()) { box.replaceChildren(notConfigured()); return; }
+  try {
+    const k = await readJson("get_constants"); if (stale()) return;
+    rules.replaceChildren(h("h3", { text: "Rules" }), h("table", { class: "t" }, h("tbody", {},
+      ...[["Minimum bond", gen(k.min_bond)], ["Points", `PR ${k.kind_points.pull_request}, commit ${k.kind_points.commit}, release ${k.kind_points.release} (+5 / +10 for 20 / 300+ changed lines), x2 / x3 / x4 for 10 / 100 / 1000 GEN`],
+        ["Challenge stake", `at least ${k.challenge_stake_bps / 100}% of the bond`], ["Verification miss", `${k.reject_fee_bps / 100}% of the bond to the pool, rest refunded`],
+        ["Challenge upheld", `${k.slash_bps / 100}% of the bond slashed: ${k.challenger_share_bps / 100}% to the challenger, rest to the pool; strike = -${k.strike_penalty} score`],
+        ["Challenge dismissed", `challenger stake: ${k.dismiss_claimant_share_bps / 100}% to the claimant, rest to the pool; claim +${k.survival_bonus} score`],
+        ["Windows", `challenge ${dur(k.challenge_window_seconds)}, resolution ${dur(k.resolution_timeout_seconds)}`],
+        ["Badges", k.badges.slice().reverse().map(([t, n]) => n[0] + n.slice(1).toLowerCase() + " " + t).join(" · ")]]
+        .map(([a, b]) => h("tr", {}, h("td", { text: a, style: "font-weight:700;width:34%" }), h("td", { class: "dim", text: b }))))));
+  } catch (e) {}
+  await load();
+}
+
+async function viewGuide(stale) {
+  mount(...skeletons(2));
+  let login = "", mine = [], t = readTestWallets();
+  try {
+    if (account && needContract()) { login = await read("get_login", [account]); mine = await readJson("get_claims", [account]); }
+  } catch (e) {}
+  if (stale()) return;
+  const has = (s) => mine.some((c) => s.includes(c.status));
+  const steps = [
+    ["Create two test wallets", "Wallet A is the developer, Wallet B the challenger. Tap the wallet button, then + New test wallet twice, then Get 100 test GEN for each.", t.keys.length >= 2, "Open wallets", openSheet],
+    ["As Wallet A: bind your GitHub login", "Make a public gist with the line shown on the Post page, paste its URL.", !!login, "Go to Post", () => { location.hash = "#/new"; }],
+    ["As Wallet A: post a claim with a 2 GEN bond", "Use a real pull request or commit of yours. Statement example: Added retry logic to the client.", has(["pending", "verified", "challenged", "finalized", "rejected", "overturned"]), "Go to Post", () => { location.hash = "#/new"; }],
+    ["Verify it", "Open the claim and press Verify. Any wallet can do it, including Wallet A.", has(["verified", "challenged", "finalized"]), "My claims", () => { location.hash = "#/profile"; }],
+    ["Switch to Wallet B and challenge it", "Stake 1 GEN with an allegation. Optional: paste a counter-evidence api.github.com link.", has(["challenged", "overturned"]) || mine.some((c) => c.survived > 0), "Open wallets", openSheet],
+    ["Resolve the challenge", "Press Resolve on the claim page. Watch the split on the Ledger page.", mine.some((c) => c.survived > 0 || c.status === "overturned"), "Open Ledger", () => { location.hash = "#/ledger"; }],
+    ["Withdraw your payouts", "Profile page, Withdraw button, for each wallet that received GEN.", false, "Open Profile", () => { location.hash = "#/profile"; }],
+  ];
+  const firstOpen = steps.findIndex((s) => !s[2]);
+  mount(h("h1", { style: "font-size:30px", text: "Test path" }), h("p", { class: "dim", text: "Everything can be tested from one phone with test wallets. Ticks update from the chain." }),
+    account ? h("div", { class: "banner info", text: `Active: ${walletLabel || "wallet"} ${short(account)}${login ? " · @" + login : ""}` }) : null,
+    h("div", { class: "card" }, ...steps.map((s, i) => stepTodo(i + 1, s[0], s[1], s[2], i === firstOpen, h("button", { class: "btn small", type: "button", text: s[3], onclick: s[4] })))),
+    h("div", { class: "card" }, h("h3", { text: "Try the failure paths too" }),
+      h("table", { class: "t" }, h("tbody", {},
+        ...[["Overstated claim", "Post a trivial commit with the statement Rewrote the Linux kernel. Verify. Expect Rejected, 90% refunded."],
+          ["Someone else's work", "Claim a pull request authored by a different login. Expect Rejected by code, the model never runs."],
+          ["Fork trick", "Claim a commit that only exists in a fork. Expect Rejected: not on the default branch."],
+          ["Dismissed challenge", "Challenge a true claim. Expect the claim to survive, +5 score, your stake split between claimant and pool."],
+          ["Upheld challenge", "Challenge an overstated claim that slipped through. Expect bond slashed, strike, score drops."]]
+          .map(([a, b]) => h("tr", {}, h("td", { text: a, style: "font-weight:700;width:34%" }), h("td", { class: "dim", text: b }))))))
+  );
+}
+
+const SNIPPET = `# GenLayer contract that gates an action by SkillBond reputation
+SKILLBOND = "0x..."  # the deployed SkillBond address
+
+@gl.public.write
+def apply(self, who: str) -> str:
+    bond = gl.get_contract_at(Address(SKILLBOND)).view()
+    if not bond.is_verified(who):
+        raise gl.vm.UserError("Needs a verified SkillBond identity")
+    if not bond.has_skill(who, "rust", 40):
+        raise gl.vm.UserError("Needs 40+ verified Rust points")
+    score = bond.get_score(who)
+    ...`;
+async function viewIntegrate(stale) {
+  const addr = h("input", { placeholder: "0x... wallet address", autocomplete: "off", value: account || "" });
+  const tag = h("input", { placeholder: "skill tag, e.g. python", autocomplete: "off", value: "" });
+  const out = h("div", { class: "code", style: "white-space:pre-wrap;min-height:70px", text: "Results appear here." });
+  const run = async () => {
+    const a = addr.value.trim();
+    if (!/^0x[0-9a-fA-F]{40}$/.test(a)) return toast("Enter a valid 0x address", "err", 3000);
+    if (!needContract()) return toast("Contract address not set", "err", 3500);
+    out.textContent = "Reading...";
+    try {
+      const calls = [["get_score", [a]], ["is_verified", [a]], ["get_badge", [a]], ["get_login", [a]]];
+      if (tag.value.trim()) calls.push(["get_skill_score", [a, tag.value.trim()]], ["has_skill", [a, tag.value.trim(), 1]]);
+      const res = await Promise.all(calls.map(([f, args]) => read(f, args)));
+      out.textContent = calls.map(([f, args], i) => `${f}(${args.map((x) => JSON.stringify(x).slice(0, 14) + (String(x).length > 14 ? "..." : "")).join(", ")}) = ${JSON.stringify(typeof res[i] === "bigint" ? Number(res[i]) : res[i])}`).join("\n");
+    } catch (e) { out.textContent = "Error: " + String(e?.message || e); }
+  };
+  const fns = [["get_score(address) -> int", "Total reputation (earned minus 25 per strike, never below 0)."], ["is_verified(address) -> bool", "Bound GitHub login and score of at least 10."],
+    ["is_verified_at_least(address, min_score) -> bool", "Same with your own threshold."], ["get_skill_score(address, tag) -> int", "Points earned under one skill tag."],
+    ["has_skill(address, tag, min_points) -> bool", "Bound login and enough points in that tag."], ["get_badge(address) -> str", "NONE, BRONZE, SILVER, GOLD or PLATINUM."],
+    ["get_claims(address) -> json", "Every claim of the wallet with status and points."], ["get_profile(address) -> json", "Score, badge, skills, strikes, claims."],
+    ["get_login(address) / get_address_for_login(login)", "The verified wallet-to-GitHub binding, both directions."], ["get_ledger(offset, limit) -> json", "Event log and GEN accounting."]];
+  mount(h("h1", { style: "font-size:30px", text: "Use SkillBond in your contract" }),
+    h("p", { class: "dim", text: "SkillBond is a reputation layer. These read-only functions are safe to call from any other Intelligent Contract." }),
+    h("div", { class: "card" }, h("h3", { text: "Example" }), h("div", { class: "code", text: SNIPPET })),
+    h("div", { class: "card" }, h("h3", { text: "Read-only API" }), h("table", { class: "t" }, h("tbody", {}, ...fns.map(([a, b]) => h("tr", {}, h("td", { class: "mono", text: a, style: "width:48%" }), h("td", { class: "dim", text: b })))))),
+    h("div", { class: "card" }, h("h3", { text: "Try it live" }), h("label", { class: "field" }, h("span", { text: "Address" }), addr), h("label", { class: "field" }, h("span", { text: "Skill tag (optional)" }), tag),
+      h("button", { class: "btn primary block", type: "button", text: "Read from the contract", onclick: run }), h("div", { style: "height:10px" }), out));
+}
+
+/* ---------- router ---------- */
+function route() {
+  const token = ++renderToken;
+  const stale = () => token !== renderToken;
+  const hash = location.hash || "#/";
+  const m = hash.match(/^#\/([a-z]*)\/?(.*)$/) || [];
+  const name = m[1] || "", arg = decodeURIComponent(m[2] || "");
+  const tab = { "": "explore", claim: "explore", new: "new", profile: "profile", ledger: "ledger", guide: "guide", integrate: "integrate" }[name] || "explore";
+  document.querySelectorAll("[data-tab]").forEach((a) => a.classList.toggle("active", a.dataset.tab === tab));
+  window.scrollTo(0, 0);
+  const run = { "": () => viewExplore(stale), claim: () => viewClaim(arg, stale), new: () => viewNew(stale), profile: () => viewProfile(arg, stale),
+    ledger: () => viewLedger(stale), guide: () => viewGuide(stale), integrate: () => viewIntegrate(stale) }[name] || (() => viewExplore(stale));
+  run().catch((e) => { if (!stale()) mount(errorBox(e)); });
+}
+window.addEventListener("hashchange", route);
+try { const s = readTestWallets(); if (s.current >= 0 && s.keys[s.current]) useTestWallet(s.current, true); } catch (e) { writeTestWallets({ keys: [], current: -1 }); }
+setStatus();
+route();
+</script>
+</body>
+</html>
