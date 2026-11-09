@@ -1,0 +1,50 @@
+name: Unzip uploaded project
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "*.zip"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  unzip:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Unzip every zip in the repository root
+        run: |
+          set -e
+          shopt -s nullglob
+          zips=(*.zip)
+          if [ ${#zips[@]} -eq 0 ]; then echo "No zip found"; exit 0; fi
+          for z in "${zips[@]}"; do
+            rm -rf /tmp/unz && mkdir /tmp/unz
+            unzip -q -o "$z" -d /tmp/unz
+            entries=$(ls -A /tmp/unz | wc -l)
+            if [ "$entries" -eq 1 ] && [ -d "/tmp/unz/$(ls -A /tmp/unz)" ]; then src="/tmp/unz/$(ls -A /tmp/unz)"; else src=/tmp/unz; fi
+            rm -rf "$src/.github"
+            cp -a "$src"/. .
+            git rm -q --cached "$z" 2>/dev/null || true
+            rm -f "$z"
+          done
+
+      - name: Commit extracted files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && echo "Nothing to commit" && exit 0
+          git commit -m "Unzip uploaded project"
+          git push
+
+      - name: Start the test workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run tests.yml --ref main || true
