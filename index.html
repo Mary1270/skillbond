@@ -62,7 +62,7 @@
   nav.bottom{position:fixed;left:0;right:0;bottom:0;z-index:40;background:color-mix(in srgb,var(--bg) 88%,transparent);
              backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--line);
              padding-bottom:env(safe-area-inset-bottom)}
-  nav.bottom .wrap{display:grid;grid-template-columns:repeat(5,1fr);gap:2px;padding:6px 8px}
+  nav.bottom .wrap{display:grid;grid-template-columns:repeat(6,1fr);gap:2px;padding:6px 8px}
   .tab{display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 2px;border-radius:12px;color:var(--faint);
        font-size:11.5px;font-weight:650}
   .tab:hover{text-decoration:none}
@@ -210,7 +210,7 @@
     <a class="brand" href="#/"><span class="logo"><svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 5-3 8.5-7 10-4-1.5-7-5-7-10V6l7-3z"/><path d="M9 12l2.2 2.2L15.5 10"/></svg></span>SkillBond</a>
     <nav class="topnav" id="topnav">
       <a href="#/" data-tab="explore">Explore</a><a href="#/new" data-tab="new">Post claim</a><a href="#/profile" data-tab="profile">Profile</a>
-      <a href="#/ledger" data-tab="ledger">Ledger</a><a href="#/guide" data-tab="guide">Test path</a><a href="#/integrate" data-tab="integrate">Integrate</a>
+      <a href="#/ledger" data-tab="ledger">Ledger</a><a href="#/guide" data-tab="guide">Test path</a><a href="#/integrate" data-tab="integrate">Integrate</a><a href="#/demo" data-tab="demo">Demo</a>
     </nav>
     <button class="wallet-pill" id="walletPill" type="button"><span class="dot" id="statusDot"></span><span class="label" id="statusText">Connect wallet</span></button>
   </div>
@@ -221,6 +221,7 @@
   <a class="tab" href="#/new" data-tab="new"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>Post</a>
   <a class="tab" href="#/profile" data-tab="profile"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4.5-6 8-6s7 2 8 6"/></svg>Profile</a>
   <a class="tab" href="#/ledger" data-tab="ledger"><svg viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h10"/></svg>Ledger</a>
+  <a class="tab" href="#/demo" data-tab="demo"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>Demo</a>
   <a class="tab" href="#/guide" data-tab="guide"><svg viewBox="0 0 24 24"><path d="M5 4h14v16l-7-4-7 4z"/></svg>Test path</a>
 </div></nav>
 
@@ -240,7 +241,7 @@
 import { createClient, createAccount } from "https://esm.sh/genlayer-js@latest";
 import { studionet } from "https://esm.sh/genlayer-js@latest/chains";
 
-const DEFAULT_CONTRACT_ADDRESS = "0x0000000000000000000000000000000000000000";
+const DEFAULT_CONTRACT_ADDRESS = "0x73f524e9033C1105C095e5c101673015608eE1ab";
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const WEI_PER_GEN = 1000000000000000000n;
 const STATUSES = ["pending", "verified", "challenged", "finalized", "rejected", "overturned", "withdrawn"];
@@ -572,8 +573,9 @@ async function viewExplore(stale) {
       h("h1", {}, "Developer reputation you can ", h("span", { class: "grad-text", text: "stake on" }), "."),
       h("p", { text: "Post a skill claim, back it with GEN, and let GenLayer validators check the GitHub evidence. Verified claims earn score and badges. A false claim loses its bond." }),
       h("div", { class: "row" },
-        h("a", { class: "btn primary", href: "#/new", text: "Post a claim" }),
-        h("a", { class: "btn", href: "#/guide", text: "Test it in 5 minutes" }),
+        h("a", { class: "btn primary", href: "#/demo", text: "Watch the live demo" }),
+        h("a", { class: "btn", href: "#/new", text: "Post a claim" }),
+        h("a", { class: "btn ghost", href: "#/guide", text: "Test it in 5 minutes" }),
         h("a", { class: "btn ghost", href: "#/integrate", text: "Use it in a contract" }))),
     needContract() ? null : notConfigured(), statsBox, chips, search, listBox, more);
 
@@ -915,6 +917,62 @@ async function viewGuide(stale) {
   );
 }
 
+const DEMO_WALLETS = {
+  developer: "0x72BE82aD9d8800d45e5cc22b4f2C29BBeDF73bc6",
+  keeper: "0x9Bf4a51B888C6FFBF337a25BF3179B07A6259128",
+  challenger: "0xf73699c4A8C35a10fBFa74ca07CbEcA99b148Ffd",
+};
+const DEMO_CLAIM_ID = "claim_0";
+const EXPLORER = "https://explorer-studio.genlayer.com/address/";
+const DEMO_STEPS = [
+  ["developer", "Deploy", "0 GEN", "SkillBond contract deployed on GenLayer Studio.", "🚀"],
+  ["developer", "bind_github", "0 GEN", "Bound wallet to GitHub login Mary1270 with a public gist. Validators fetched the gist and agreed it is owned by that login.", "🔗"],
+  ["developer", "post_claim", "10 GEN", "Posted a pull request claim for Mary1270/tagbond-test#1 and locked a 10 GEN bond.", "📝"],
+  ["keeper", "verify_claim", "0 GEN", "A third wallet asked validators to check the evidence. Authorship, repository and merge state are checked in code, the model judges the statement.", "✅"],
+  ["challenger", "challenge_claim", "5 GEN", "A different wallet staked 5 GEN (50% of the bond) against the claim.", "⚔️"],
+  ["keeper", "resolve_challenge", "0 GEN", "Validators re-read the evidence and ruled on the challenge.", "⚖️"],
+  ["developer", "withdraw", "0 GEN", "The claimant collected the payout from the challenge.", "💸"],
+  ["challenger", "withdraw", "0 GEN", "Nothing to collect for the challenger when the challenge is dismissed. The contract refuses an empty withdrawal.", "↩️"],
+];
+const ROLE_LABEL = { developer: "Developer", keeper: "Keeper", challenger: "Challenger" };
+
+async function viewDemo(stale) {
+  const liveBox = h("div", {}, ...skeletons(2));
+  const outcome = h("div", { class: "small dim", text: "" });
+  const link = needContract() ? EXPLORER + CONTRACT_ADDRESS : null;
+  const timeline = h("div", { class: "card" }, h("h3", { text: "What happened on Studio" }), h("p", { class: "small dim", style: "margin:4px 0 6px", text: "Eight transactions from three Studio wallets. This is a recording of a real run; the proof below is read live from the contract." }),
+    ...DEMO_STEPS.map(([role, method, value, text, icon], i) => h("div", { class: "ev" }, h("div", { class: "ic", text: icon }),
+      h("div", {}, h("div", { class: "t" }, `${i + 1}. ${method}`, h("span", { class: "chip", style: "margin-left:8px", text: ROLE_LABEL[role] }), h("span", { class: "chip", style: "margin-left:6px", text: value })),
+        h("div", { class: "d", text: short(DEMO_WALLETS[role]) + " · " + text }),
+        i === 5 ? outcome : null))));
+  mount(h("h1", { style: "font-size:30px", text: "Live demo" }),
+    h("p", { class: "dim", text: "See the full SkillBond flow without a wallet. A real run on GenLayer Studio is replayed here, and every number in the proof section comes straight from the deployed contract." }),
+    h("div", { class: "banner info", text: "Studio accounts are not MetaMask accounts, so this page lets you read everything without connecting anything." }),
+    timeline,
+    h("h2", { style: "margin:14px 0 8px", text: "Live proof from the contract" }), liveBox,
+    h("div", { class: "row", style: "margin-top:14px" },
+      h("a", { class: "btn primary", href: "#/claim/" + DEMO_CLAIM_ID, text: "Open the demo claim" }),
+      h("a", { class: "btn", href: "#/ledger", text: "See the ledger" }),
+      h("a", { class: "btn ghost", href: "#/profile/" + DEMO_WALLETS.developer, text: "Developer profile" }),
+      link ? h("a", { class: "btn ghost", href: link, target: "_blank", rel: "noopener", text: "Studio explorer" }) : null));
+  if (!needContract()) { liveBox.replaceChildren(notConfigured()); return; }
+  try {
+    const [claim, profile, acc] = await Promise.all([readJson("get_claim", [DEMO_CLAIM_ID]).catch(() => null), readJson("get_profile", [DEMO_WALLETS.developer]).catch(() => null), readJson("get_accounting").catch(() => null)]);
+    if (stale()) return;
+    const parts = [];
+    if (claim) {
+      const survived = Number(claim.survived || 0) > 0;
+      outcome.textContent = survived ? "Live result: the challenge was dismissed and the claim survived." : claim.status === "overturned" ? "Live result: the challenge was upheld and the bond was slashed." : "Live status: " + (STATUS_LABEL[claim.status] || claim.status) + ".";
+      parts.push(claimCard(claim), stepperFor(claim));
+    } else parts.push(h("div", { class: "banner warn", text: "The demo claim was not found on this contract." }));
+    if (profile) parts.push(h("div", { class: "card", style: "margin-top:12px" }, h("div", { class: "row between" }, h("h3", { text: "Developer reputation" }), medal(profile.badge)),
+      h("div", { class: "grid3", style: "margin-top:8px" }, ...[[profile.score, "score"], [profile.login ? "@" + profile.login : "none", "GitHub login"], [profile.verified ? "yes" : "no", "is_verified"]].map(([v, l]) => h("div", { class: "stat" }, h("b", { text: String(v) }), h("span", { text: l }))))));
+    if (acc) parts.push(h("div", { class: "card", style: "margin-top:12px" }, h("div", { class: "row between" }, h("h3", { text: "Where the GEN is" }), h("span", { class: "pill " + (acc.solvent ? "p-verified" : "p-overturned"), text: acc.solvent ? "Fully backed" : "Shortfall!" })),
+      h("div", { class: "grid2", style: "margin-top:8px" }, ...[["Contract balance", acc.contract_balance], ["Locked in claims", acc.locked], ["Owed to wallets", acc.pending_withdrawals], ["Keeper pool", acc.pool]].map(([l, v]) => h("div", { class: "stat" }, h("b", { text: gen(v) }), h("span", { text: l }))))));
+    liveBox.replaceChildren(...parts);
+  } catch (e) { if (!stale()) liveBox.replaceChildren(errorBox(e)); }
+}
+
 const SNIPPET = `# GenLayer contract that gates an action by SkillBond reputation
 SKILLBOND = "0x..."  # the deployed SkillBond address
 
@@ -963,11 +1021,11 @@ function route() {
   const hash = location.hash || "#/";
   const m = hash.match(/^#\/([a-z]*)\/?(.*)$/) || [];
   const name = m[1] || "", arg = decodeURIComponent(m[2] || "");
-  const tab = { "": "explore", claim: "explore", new: "new", profile: "profile", ledger: "ledger", guide: "guide", integrate: "integrate" }[name] || "explore";
+  const tab = { "": "explore", claim: "explore", new: "new", profile: "profile", ledger: "ledger", guide: "guide", integrate: "integrate", demo: "demo" }[name] || "explore";
   document.querySelectorAll("[data-tab]").forEach((a) => a.classList.toggle("active", a.dataset.tab === tab));
   window.scrollTo(0, 0);
   const run = { "": () => viewExplore(stale), claim: () => viewClaim(arg, stale), new: () => viewNew(stale), profile: () => viewProfile(arg, stale),
-    ledger: () => viewLedger(stale), guide: () => viewGuide(stale), integrate: () => viewIntegrate(stale) }[name] || (() => viewExplore(stale));
+    ledger: () => viewLedger(stale), guide: () => viewGuide(stale), integrate: () => viewIntegrate(stale), demo: () => viewDemo(stale) }[name] || (() => viewExplore(stale));
   run().catch((e) => { if (!stale()) mount(errorBox(e)); });
 }
 window.addEventListener("hashchange", route);

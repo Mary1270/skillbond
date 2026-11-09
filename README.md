@@ -98,6 +98,7 @@ if not bond.has_skill(who, "rust", 40):
 | `#/ledger` | GEN accounting, rules, paged event timeline |
 | `#/guide` | Test path with live ticks and failure-path checklist |
 | `#/integrate` | API reference, snippet, live read playground |
+| `#/demo` | Wallet-free demo: replay of a recorded Studio run plus live proof read from the contract |
 
 The wallet sheet can create up to five throwaway test wallets (Wallet A, B, ...) inside the browser tab, switch between them and request test GEN, so every role can be tested from one phone.
 
